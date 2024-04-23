@@ -2,13 +2,15 @@ package com.example.k2022_03_09_radio
 
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 import android.widget.ImageView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 
 var Index = 0
 
@@ -20,18 +22,34 @@ val urls = arrayOf(
     "https://kawaii-music.stream.laut.fm/kawaii-music"
 )
 
+val videoUrls = arrayOf(
+    "https://static.videezy.com/system/resources/previews/000/024/935/original/4k-stop-road-panel-background-with-glith-effects.mp4",
+    "https://static.videezy.com/system/resources/previews/000/044/404/original/Hot_Strokes_HD_BG.mp4",
+    "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+)
+
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var button: Button
     private lateinit var leftButton: Button
     private lateinit var rightButton: Button
     private lateinit var radioButton: Button
+    private lateinit var leftVidButton: Button
+    private lateinit var rightVidButton: Button
+    private lateinit var videoButton: Button
     private lateinit var imageView: ImageView
     private lateinit var stationRecyclerView: RecyclerView
     private lateinit var stationAdapter: StationAdapter
 
     private lateinit var mediaPlayer: MediaPlayer
     private var radioOn: Boolean = false
+
+    private lateinit var playerView: PlayerView
+    private lateinit var player: ExoPlayer
+
+    private var isVideoPlaying: Boolean = false
+    private var currentVideoIndex: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,21 +59,38 @@ class MainActivity : AppCompatActivity() {
         leftButton = findViewById(R.id.leftButton)
         rightButton = findViewById(R.id.rightButton)
         radioButton = findViewById(R.id.radioButton)
+        leftVidButton = findViewById(R.id.leftVidButton)
+        rightVidButton = findViewById(R.id.rightVidButton)
+        videoButton = findViewById(R.id.videoButton)
         imageView = findViewById(R.id.imageView)
         stationRecyclerView = findViewById(R.id.stationRecyclerView)
+        playerView = findViewById(R.id.player_view)
 
         setUpRadio()
+        setUpVideoPlayer()
 
         button.setOnClickListener {
-            toggleRadio()
+                toggleRadio()
         }
 
         leftButton.setOnClickListener {
-            flipStation(-1)
+                flipStation(-1)
         }
 
         rightButton.setOnClickListener {
             flipStation(1)
+        }
+
+        leftVidButton.setOnClickListener {
+            previousVideo()
+        }
+
+        rightVidButton.setOnClickListener {
+            nextVideo()
+        }
+
+        videoButton.setOnClickListener {
+            toggleVideo()
         }
 
         stationRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -85,6 +120,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setUpVideoPlayer() {
+        player = ExoPlayer.Builder(this).build()
+        playerView.player = player
+        val mediaItem = MediaItem.fromUri(videoUrls[currentVideoIndex])
+        player.setMediaItem(mediaItem)
+        player.prepare()
+    }
+
     private fun toggleRadio() {
         radioOn = !radioOn
         updateRadioButtonText()
@@ -96,8 +139,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun toggleVideo() {
+        if (isVideoPlaying) {
+            player.pause()
+        } else {
+            player.play()
+        }
+        isVideoPlaying = !isVideoPlaying
+    }
+
     private fun updateRadioButtonText() {
-        button.text = if (radioOn) "Radio Off" else "Radio On"
+            button.text = if (radioOn) "Radio Off" else "Radio On"
     }
 
     private fun flipStation(offset: Int) {
@@ -107,7 +159,7 @@ class MainActivity : AppCompatActivity() {
         mediaPlayer.prepareAsync()
         radioButton.text = urls[newIndex]
 
-        val drawableId = when (newIndex) {
+        /*val drawableId = when (newIndex) {
             0 -> R.drawable.d1
             1 -> R.drawable.d2
             2 -> R.drawable.d3
@@ -115,7 +167,7 @@ class MainActivity : AppCompatActivity() {
             4 -> R.drawable.d5
             else -> R.drawable.d1
         }
-        imageView.setImageResource(drawableId)
+        imageView.setImageResource(drawableId)*/
 
         if (radioOn) {
             mediaPlayer.setOnPreparedListener {
@@ -126,6 +178,21 @@ class MainActivity : AppCompatActivity() {
         Index = newIndex
     }
 
+    private fun nextVideo() {
+        currentVideoIndex = (currentVideoIndex + 1) % videoUrls.size
+        val mediaItem = MediaItem.fromUri(videoUrls[currentVideoIndex])
+        player.setMediaItem(mediaItem)
+        player.prepare()
+        player.play()
+    }
+
+    private fun previousVideo() {
+        currentVideoIndex = (currentVideoIndex - 1 + videoUrls.size) % videoUrls.size
+        val mediaItem = MediaItem.fromUri(videoUrls[currentVideoIndex])
+        player.setMediaItem(mediaItem)
+        player.prepare()
+        player.play()
+    }
 
     override fun onStop() {
         super.onStop()
